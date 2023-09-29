@@ -1,0 +1,54 @@
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+
+#define MAX_MAP_ENTRIES 1024
+
+struct ip4_trie_key {
+    __u32 prefixlen;
+    __u8 addr[4];
+};
+
+struct {
+    __uint(type, BPF_MAP_TYPE_LPM_TRIE);
+    __uint(max_entries, MAX_MAP_ENTRIES);
+    __type(key, struct ip4_trie_key);
+    __type(value, int);
+    __uint(map_flags, BPF_F_NO_PREALLOC);
+} xdp_dvbs_map SEC(".maps");
+
+SEC("xdp_deneme")
+int xdp_drop_prog(struct xdp_md *ctx)
+{
+    void *data_end = (void *)(long)ctx->data_end;
+    void *data = (void *)(long)ctx->data;
+    struct ethhdr *eth = data;
+    struct iphdr *ip = (struct iphdr *)(eth + 1);
+
+    // Paket boyutunu kontrol et
+    if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end)
+        return XDP_DROP;
+
+    if (ip->ihl != 5 || ip->version != 4)
+        return XDP_DROP;
+
+    if (eth->h_proto != 0x0008)
+        return XDP_PASS;
+
+    // Sadece 192.168.*.* IP adreslerini geçebilir
+    struct ip4_trie_key target_ip_key = {
+        .prefixlen = 24,  // 192.168.0.0/24
+        .addr = {0xC0, 0xA8, 0x00, 0x00},  // 192.168.0.0
+    };
+
+    int *value = bpf_map_lookup_elem(&xdp_dvbs_map, &target_ip_key);
+    if (value) {
+        return XDP_PASS;
+    }
+
+    return XDP_DROP;
+}
+
+char _license[] SEC("license") = "GPL";
+

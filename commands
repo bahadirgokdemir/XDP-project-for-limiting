@@ -1,0 +1,21 @@
+    4   cd /etc/yum.repos.d/
+    5   sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+    6   sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+    7   echo "sslverify=false" >> /etc/yum.conf
+    
+    1   yum update    
+    12  yum install net-tools
+    19  yum install ncurses 
+    35  dnf install clang llvm gcc libbpf  libxdp xdp-tools bpftool kernel-headers
+    58  clang -O2 -g -Wall -target bpf -c xdp_deneme.c -o xdp_deneme.o
+    63  yum install libbpf-dev
+    64  yum install libbpf-devel
+    65  dnf install clang llvm gcc libbpf  libxdp xdp-tools bpftool kernel-headers
+    66  dnf install clang llvm gcc libbpf libbpf-devel libxdp libxdp-devel xdp-tools bpftool kernel-headers
+    67  dnf groupinstall 'development tools'
+    68  dnf install wget openssl-devel bzip2-devel libffi-devel
+
+  409  clang -O2 -g -Wall -target bpf -c xdp_deneme.c -o xdp_deneme.o
+  411  ip link set eth0 xdpgeneric obj xdp_deneme.o sec xdp_deneme
+  414  xdp-loader load -m skb -s xdp_deneme eth0 xdp_deneme.o
+
